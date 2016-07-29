@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.DependentCancellable;
-import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Locale;
 
 /**
  * Created by koush on 7/1/13.
@@ -32,6 +32,7 @@ class SocketIOConnection {
     int heartbeat;
     long reconnectDelay;
     ArrayList<SocketIOClient> clients = new ArrayList<SocketIOClient>();
+
     SocketIOTransport transport;
     SocketIORequest request;
 
@@ -54,13 +55,13 @@ class SocketIOConnection {
             ack =  id + "+";
             acknowledges.put(id, acknowledge);
         }
-        transport.send(String.format("%d:%s:%s:%s", type, ack, client.endpoint, message));
+        transport.send(String.format(Locale.ENGLISH, "%d:%s:%s:%s", type, ack, client.endpoint, message));
     }
 
     public void connect(SocketIOClient client) {
         if (!clients.contains(client))
             clients.add(client);
-        transport.send(String.format("1::%s", client.endpoint));
+        transport.send(String.format(Locale.ENGLISH, "1::%s", client.endpoint));
     }
 
     public void disconnect(SocketIOClient client) {
@@ -78,16 +79,18 @@ class SocketIOConnection {
             }
         }
 
-        if (needsEndpointDisconnect && transport != null)
-            transport.send(String.format("0::%s", client.endpoint));
+        final SocketIOTransport ts = transport;
+
+        if (needsEndpointDisconnect && ts != null)
+            ts.send(String.format(Locale.ENGLISH, "0::%s", client.endpoint));
 
         // and see if we can disconnect the socket completely
-        if (clients.size() > 0 || transport == null)
+        if (clients.size() > 0 || ts == null)
             return;
 
-        transport.setStringCallback(null);
-        transport.setClosedCallback(null);
-        transport.disconnect();
+        ts.setStringCallback(null);
+        ts.setClosedCallback(null);
+        ts.disconnect();
         transport = null;
     }
 
@@ -170,19 +173,19 @@ class SocketIOConnection {
     }
 
     void setupHeartbeat() {
-        final SocketIOTransport ts = transport;
         Runnable heartbeatRunner = new Runnable() {
             @Override
             public void run() {
-                if (heartbeat <= 0 || ts != transport || ts == null || !ts.isConnected())
+                final SocketIOTransport ts = transport;
+
+                if (heartbeat <= 0 || ts == null || !ts.isConnected())
                     return;
 
-                transport.send("2:::");
-
-                if (transport != null)
-                    transport.getServer().postDelayed(this, heartbeat);
+                ts.send("2:::");
+                ts.getServer().postDelayed(this, heartbeat);
             }
         };
+
         heartbeatRunner.run();
     }
 
@@ -360,7 +363,7 @@ class SocketIOConnection {
                     });
                     return;
                 }
-                transport.send(String.format("6:::%s%s", messageId, data));
+                transport.send(String.format(Locale.ENGLISH, "6:::%s%s", messageId, data));
             }
         };
     }

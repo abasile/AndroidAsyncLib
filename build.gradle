@@ -9,10 +9,6 @@ buildscript {
         // in the individual module build.gradle files
     }
 }
-    repositories {
-    repositories {
-    repositories {
-    repositories {
 apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 
